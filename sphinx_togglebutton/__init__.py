@@ -2,6 +2,7 @@
 import os
 from docutils.parsers.rst import Directive, directives
 from docutils import nodes
+import base64
 
 __version__ = "0.3.2"
 
@@ -31,17 +32,32 @@ def insert_custom_selection_config(app):
 class Toggle(Directive):
     """Hide a block of markup text by wrapping it in a container."""
 
-    optional_arguments = 1
+    optional_arguments = 3
     final_argument_whitespace = True
     has_content = True
 
-    option_spec = {"id": directives.unchanged, "show": directives.flag}
-
+    option_spec = {
+        "id": directives.unchanged,
+        "show": directives.flag,
+        "hint": directives.unchanged,
+        "hint_hide": directives.unchanged,
+    }
+    
     def run(self):
         self.assert_has_content()
         classes = ["toggle"]
         if "show" in self.options:
             classes.append("toggle-shown")
+
+        # Retrieve global hints if specific hints are not provided
+        env = self.state.document.settings.env
+        hint = self.options.get('hint', env.config.togglebutton_hint)
+        hint_hide = self.options.get('hint_hide', env.config.togglebutton_hint_hide)
+
+        hint_encoded = base64.urlsafe_b64encode(hint.encode()).decode().replace('=', 'EQ')
+        classes.append(f"hint-show-{hint_encoded}")
+        hint_hide_encoded = base64.urlsafe_b64encode(hint_hide.encode()).decode().replace('=', 'EQ')
+        classes.append(f"hint-hide-{hint_hide_encoded}")
 
         parent = nodes.container(classes=classes)
         self.state.nested_parse(self.content, self.content_offset, parent)

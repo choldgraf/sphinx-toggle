@@ -15,6 +15,23 @@ var initToggleItems = () => {
   );
   // Add the button to each admonition and hook up a callback to toggle visibility
   itemsToToggle.forEach((item, index) => {
+    // Use custom hint and hint_hide if available
+    let customHintShow = toggleHintShow;
+    let customHintHide = toggleHintHide;
+
+    const classes = item.className.split(/\s+/);
+    classes.forEach((cls) => {
+      if (cls.startsWith("hint-show-")) {
+        const encoded = cls.substring(10).replace(/EQ/g, "=");
+        const decoded = atob(encoded.replace(/_/g, "/").replace(/-/g, "+"));
+        customHintShow = decoded;
+      } else if (cls.startsWith("hint-hide-")) {
+        const encoded = cls.substring(10).replace(/EQ/g, "=");
+        const decoded = atob(encoded.replace(/_/g, "/").replace(/-/g, "+"));
+        customHintHide = decoded;
+      }
+    });
+
     if (item.classList.contains("admonition")) {
       // If it's an admonition block, then we'll add a button inside
       // Generate unique IDs for this item
@@ -27,15 +44,7 @@ var initToggleItems = () => {
       }
       // This is the button that will be added to each item to trigger the toggle
       var collapseButton = `
-        <button type="button"
-                id="${buttonID}"
-                class="toggle-button"
-                data-target="${toggleID}"
-                data-button="${buttonID}"
-                data-toggle-hint="${toggleHintShow}"
-                aria-label="Toggle hidden content"
-                aria-expanded="false"
-            >
+        <button type="button" id="${buttonID}" class="toggle-button" data-target="${toggleID}" data-button="${buttonID}" data-toggle-hint="${customHintShow}" aria-label="Toggle hidden content">
             ${toggleChevron}
         </button>`;
 
@@ -68,7 +77,7 @@ var initToggleItems = () => {
         <details class="toggle-details">
             <summary class="toggle-details__summary">
               ${toggleChevron}
-              <span class="toggle-details__summary-text">${toggleHintShow}</span>
+              <span class="toggle-details__summary-text">${customHintShow}</span>
             </summary>
         </details>`;
       item.insertAdjacentHTML("beforebegin", detailsBlock);
@@ -91,16 +100,19 @@ var initToggleItems = () => {
         // Update the inner text for the proper hint
         if (details.open) {
           summary.querySelector("span.toggle-details__summary-text").innerText =
-            toggleHintShow;
+            customHintShow;
         } else {
           summary.querySelector("span.toggle-details__summary-text").innerText =
-            toggleHintHide;
+            customHintHide;
         }
       });
 
       // If we have a toggle-shown class, open details block should be open
       if (item.classList.contains("toggle-shown")) {
-        details.click();
+        details.open = true;
+        let summary = details.querySelector("summary");
+        summary.querySelector("span.toggle-details__summary-text").innerText =
+          customHintHide;
       }
     }
   });
@@ -114,12 +126,10 @@ var toggleHidden = (button) => {
     itemToToggle.classList.remove("toggle-hidden");
     button.classList.remove("toggle-button-hidden");
     button.dataset.toggleHint = toggleHintHide;
-    button.setAttribute("aria-expanded", true);
   } else {
     itemToToggle.classList.add("toggle-hidden");
     button.classList.add("toggle-button-hidden");
     button.dataset.toggleHint = toggleHintShow;
-    button.setAttribute("aria-expanded", false);
   }
 };
 
